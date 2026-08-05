@@ -147,7 +147,7 @@
 
 ;;;; Color Theme
 
-(consult-theme 'modus-operandi-tinted)
+(consult-theme 'modus-vivendi-tinted)
 
 ;;;; ANSI Color Support
 
