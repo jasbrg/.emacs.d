@@ -599,11 +599,11 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   (esxml-to-xml
    `(table ((border . "2") (cellspacing . "0") (cellpadding . "6") (rules . "groups") (frame . "hsides"))
            (colgroup () ,@(mapcar (lambda (_) '(col ((class . "org-left"))))
-                                  (cons "Home" parts)))
+                                  (cons "home" parts)))
            (tbody () (tr ()
                          (td ((class . "org-left"))
                              (a ((href . "/index.html"))
-                                (code () "Home")))
+                                (code () "home")))
                          ,@(mapcar (lambda (part)
                                      `(td ((class . "org-left"))
                                           (a ((href . ,(file-name-concat "/" part "index.html")))
@@ -646,27 +646,6 @@ e.g. src_elisp{(my/keybind 'gptel)}"
       :with-email nil
       :html-preamble my/org-blog-breadcrumb-bar
       :html-postamble nil)
-     ;; ("posts"
-     ;;  :base-directory ,(file-name-concat my/org-blog-directory "posts")
-     ;;  :publishing-directory ,(file-name-concat my/html-blog-directory "Posts")
-     ;;  :publishing-function org-html-publish-to-html
-     ;;  :html-head "<link rel='stylesheet' type='text/css' href='/css/my.css'>"
-     ;;  :html-head-include-scripts nil
-     ;;  :html-head-include-default-style nil
-     ;;  :recursive t
-     ;;  :auto-sitemap t
-     ;;  :html-preamble my/org-blog-breadcrumb-bar
-     ;;  :sitemap-filename "index.org")
-     ;; ("notes"
-     ;;  :base-directory ,(file-name-concat my/org-blog-directory "notes")
-     ;;  :publishing-directory ,(file-name-concat my/html-blog-directory "Notes")
-     ;;  :publishing-function org-html-publish-to-html
-     ;;  :html-head "<link rel='stylesheet' type='text/css' href='/css/my.css'>"
-     ;;  :html-head-include-scripts nil
-     ;;  :html-head-include-default-style nil
-     ;;  :auto-sitemap t
-     ;;  :html-preamble my/org-blog-breadcrumb-bar
-     ;;  :sitemap-filename "index.org")
      ("images"
       :base-extension "png"
       :base-directory ,(file-name-concat my/org-blog-directory "images")
@@ -703,7 +682,57 @@ e.g. src_elisp{(my/keybind 'gptel)}"
       :publishing-directory ,my/jotbooks-html-directory
       :publishing-function org-publish-attachment)
      ("jotbooks" :components ("jotbooks-pages" "jotbooks-images"))
-     ("site" :components ("blog" "images" "css" "jotbooks")))))
+     ("nodes-pages"
+      :base-directory ,my/nodes-staging-directory
+      :publishing-directory ,my/nodes-html-directory
+      :publishing-function org-html-publish-to-html
+      :recursive t
+      :preparation-function my/jotbooks-prepare
+      :html-head ,(concat "<link rel='stylesheet' type='text/css' href='/css/my.css'>"
+                          my/jotbooks-html-head)
+      :html-head-include-scripts nil
+      :html-head-include-default-style nil
+      :with-author nil
+      :with-date nil
+      :with-email nil
+      :with-toc nil
+      :section-numbers nil
+      :with-broken-links mark
+      :html-preamble my/nodes-breadcrumb
+      :html-postamble nil)
+     ("nodes-static"
+      :base-directory ,my/nodes-staging-directory
+      :base-extension "xml"
+      :recursive t
+      :publishing-directory ,my/nodes-html-directory
+      :publishing-function org-publish-attachment)
+     ("nodes" :components ("nodes-pages" "nodes-static"))
+     ("terms-pages"
+      :base-directory ,my/terms-staging-directory
+      :publishing-directory ,my/html-blog-directory
+      :publishing-function org-html-publish-to-html
+      :recursive t
+      :preparation-function my/jotbooks-prepare
+      :html-head ,(concat "<link rel='stylesheet' type='text/css' href='/css/my.css'>"
+                          my/jotbooks-html-head)
+      :html-head-include-scripts nil
+      :html-head-include-default-style nil
+      :with-author nil
+      :with-date nil
+      :with-email nil
+      :with-toc nil
+      :section-numbers nil
+      :with-broken-links mark
+      :html-preamble my/terms-breadcrumb
+      :html-postamble nil)
+     ("terms-static"
+      :base-directory ,my/terms-staging-directory
+      :base-extension "xml"
+      :recursive t
+      :publishing-directory ,my/html-blog-directory
+      :publishing-function org-publish-attachment)
+     ("terms" :components ("terms-pages" "terms-static"))
+     ("site" :components ("blog" "images" "css" "jotbooks" "nodes" "terms")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Applications ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
