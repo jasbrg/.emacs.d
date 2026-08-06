@@ -402,6 +402,7 @@ notebook's neighbors in the archive's reading order are known."
             :updated (cdr (assoc "time_modified" meta))
             :tags (split-string (or (cdr (assoc "filetags" meta)) "") ":" t)
             :category (cdr (assoc "category" meta))
+            :refs (cdr (assoc "roam_refs" meta))
             :meta meta
             :pages pages
             :thumbs thumbs
@@ -456,10 +457,11 @@ grouped-rules table used elsewhere on the site."
 
 (defun my/jotbooks--meta-table (info)
   "Org table of INFO's metadata — ID, timestamps, tags, category,
-page count, and a \"Backlinks\" row when other
-published pages link to INFO's ID."
+external links (ROAM_REFS), page count, and a \"Backlinks\" row when
+other published pages link to INFO's ID."
   (let* ((tags (plist-get info :tags))
          (category (plist-get info :category))
+         (refs (plist-get info :refs))
          (id (plist-get info :id))
          (created (plist-get info :created))
          (updated (plist-get info :updated))
@@ -473,6 +475,7 @@ published pages link to INFO's ID."
             (and tags (cons "Tags" (my/jotbooks--tag-links tags)))
             (and category (cons "Category"
                                 (my/jotbooks--category-link category)))
+            (and refs (cons "Links" (my/jotbooks--refs-links refs)))
             (cons "Pages" (format "=%d=" (length (plist-get info :pages))))
             (and backlinks (cons "Backlinks" backlinks)))))))
 
@@ -570,6 +573,39 @@ the first page's prev link reaches back into PREV-INFO's last page."
   (my/jotbooks--html-link
    (format "/categories/%s.html" (my/jotbooks--slug category))
    category))
+
+(defun my/jotbooks--ref-link (ref)
+  "Render one ROAM_REFS token REF as a table-cell link, or as literal
+text when it isn't a URL — e.g. a citation key such as \"@doe2020\".
+Recognizes org's bracketed link syntax (\"[[URL]]\" or
+\"[[URL][DESC]]\") as well as bare URLs; a surrounding pair of double
+quotes, per org-roam's convention for refs with spaces, is stripped
+first."
+  (let ((ref (if (string-match "\\`\"\\(.*\\)\"\\'" ref) (match-string 1 ref) ref)))
+    (cond
+     ((string-match "\\`\\[\\[\\([^][]+\\)\\]\\(?:\\[\\([^][]+\\)\\]\\)?\\]\\'" ref)
+      (my/jotbooks--html-link (match-string 1 ref)
+                              (or (match-string 2 ref) (match-string 1 ref))))
+     ((string-match-p "\\`[a-z]+://" ref)
+      (my/jotbooks--html-link ref ref))
+     (t (format "=%s=" ref)))))
+
+(defun my/jotbooks--refs-tokens (refs-string)
+  "Tokenize a ROAM_REFS value on whitespace, except within a
+double-quoted string or a bracketed org link (\"[[URL]]\" or
+\"[[URL][DESC]]\"), which stay whole even when they contain spaces."
+  (let ((re "\\[\\[[^][]*\\]\\(?:\\[[^][]*\\]\\)?\\]\\|\"[^\"]*\"\\|[^ \t\n]+")
+        (start 0) tokens)
+    (while (string-match re refs-string start)
+      (push (match-string 0 refs-string) tokens)
+      (setq start (match-end 0)))
+    (nreverse tokens)))
+
+(defun my/jotbooks--refs-links (refs-string)
+  "Table-cell markup for REFS-STRING, a ROAM_REFS value."
+  (mapconcat #'my/jotbooks--ref-link
+             (my/jotbooks--refs-tokens refs-string)
+             ", "))
 
 (defun my/jotbooks--listing (entries)
   "Org list over ENTRIES — jotbooks and nodes alike — newest first.
@@ -875,6 +911,7 @@ tag on its own heading and an :ID: in the drawer below it."
                                (file-name-base file))
                     :tags (split-string tags ":" t)
                     :category (cdr (assoc "category" meta))
+                    :refs (cdr (assoc "roam_refs" meta))
                     :created (or (cdr (assoc "time_created" meta))
                                  (cdr (assoc "created" meta))
                                  (cdr (assoc "date" meta)))
@@ -905,6 +942,7 @@ tag on its own heading and an :ID: in the drawer below it."
                         :title title
                         :tags (split-string tag-string ":" t)
                         :category (cdr (assoc "category" meta))
+                        :refs (cdr (assoc "roam_refs" meta))
                         :created (or (cdr (assoc "time_created" meta))
                                      (cdr (assoc "created" meta)))
                         :updated (cdr (assoc "time_modified" meta))
@@ -952,11 +990,13 @@ disambiguated with a prefix of the node's ID."
     (nreverse nodes)))
 
 (defun my/nodes--meta-table (node)
-  "Org table of NODE's metadata, including its backlinks."
+  "Org table of NODE's metadata, including its external links
+(ROAM_REFS) and its backlinks."
   (let ((created (plist-get node :created))
         (updated (plist-get node :updated))
         (tags (plist-get node :tags))
         (category (plist-get node :category))
+        (refs (plist-get node :refs))
         (backlinks (my/jotbooks--backlinks-cell (plist-get node :id))))
     (my/jotbooks--org-table
      (delq nil
@@ -967,6 +1007,7 @@ disambiguated with a prefix of the node's ID."
             (and tags (cons "Tags" (my/jotbooks--tag-links tags)))
             (and category (cons "Category"
                                 (my/jotbooks--category-link category)))
+            (and refs (cons "Links" (my/jotbooks--refs-links refs)))
             (and backlinks (cons "Backlinks" backlinks)))))))
 
 (defun my/nodes--page (node)
