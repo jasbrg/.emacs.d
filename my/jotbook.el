@@ -1,17 +1,21 @@
 ;;;; Jotbooks Publishing
 
-;; Notebook scans (multi-page PDFs from the iPhone) live under
-;; `my/jotbooks-directory'.  Every PDF is one jotbook, published at its
-;; directory path — analog/mug.pdf appears under /jotbooks/analog/mug/.
-;; Directories are sections: each gets an index page listing the
-;; jotbooks beneath it, its own RSS feed, and a crumb in the breadcrumb
-;; bar.  Publishing renders each page and a thumbnail to JPEG
-;; (pdftoppm) and generates one org file per page with prev/next
-;; navigation, a thumbnail sheet per jotbook, and a master index — all
-;; under `my/jotbooks-staging-directory', which org-publish then
-;; exports.  The render/generate step runs as the project's
-;; :preparation-function, so dropping a new PDF or sub-directory into
-;; the Jotbooks directory is picked up by a plain `org-publish-all'.
+;; Notebook scans (multi-page PDFs from the iPhone) and standalone
+;; photos (HEIC, also from the iPhone) live under
+;; `my/jotbooks-directory'.  Every PDF or HEIC file is one jotbook,
+;; published at its directory path — analog/mug.pdf appears under
+;; /jotbooks/analog/mug/, and a HEIC photo the same way, as a
+;; single-page jotbook.  Directories are sections: each gets an index
+;; page listing the jotbooks beneath it, its own RSS feed, and a crumb
+;; in the breadcrumb bar.  Publishing renders each page and a
+;; thumbnail to JPEG — PDF pages via pdftoppm, HEIC photos via sips —
+;; and generates one org file per page with prev/next navigation, a
+;; thumbnail sheet per jotbook, and a master index — all under
+;; `my/jotbooks-staging-directory', which org-publish then exports.
+;; The render/generate step runs as the project's
+;; :preparation-function, so dropping a new PDF, HEIC, or
+;; sub-directory into the Jotbooks directory is picked up by a plain
+;; `org-publish-all'.
 ;;
 ;; Jotbooks form one continuous archive in reading order — strictly by
 ;; creation time (an explicit #+DATE, else org-node's :TIME_CREATED:,
@@ -101,19 +105,20 @@ anywhere org-node can see them.  Paths containing a substring from
 (defun my/jotbooks--scan (dir rel)
   "Recursively collect jotbooks and sections under DIR.
 REL is DIR's path relative to `my/jotbooks-directory' (\"\" at the
-root).  Every PDF is one jotbook named by its path sans extension;
-every directory with a PDF somewhere beneath it is a section.
-Returns (NOTEBOOKS . SECTIONS), where SECTIONS are (REL . DIR) pairs
-excluding the root itself."
+root).  Every PDF or HEIC file is one jotbook named by its path sans
+extension; every directory with one somewhere beneath it is a
+section.  Returns (NOTEBOOKS . SECTIONS), where SECTIONS are (REL
+. DIR) pairs excluding the root itself."
   (let (notebooks sections)
     (dolist (name (directory-files dir))
       (unless (string-prefix-p "." name)
         (let ((path (file-name-concat dir name))
-              (child (if (equal rel "") name (concat rel "/" name))))
+              (child (if (equal rel "") name (concat rel "/" name)))
+              (case-fold-search t))
           (cond
-           ((string-match-p "\\.pdf\\'" name)
+           ((string-match-p "\\.\\(pdf\\|heic\\)\\'" name)
             (push (list :name (file-name-sans-extension child)
-                        :pdfs (list path)
+                        :sources (list path)
                         :meta-file (concat (file-name-sans-extension path)
                                            ".meta.org"))
                   notebooks))
@@ -313,10 +318,51 @@ Returns (PAGES . THUMBS), file names relative to IMG-DIR in page order."
           (my/jotbooks--images
            img-dir (concat "\\`" (regexp-quote stem) "-thumb-[0-9]+\\.jpg\\'")))))
 
+(defun my/jotbooks--sips-heic (heic out pixels)
+  (unless (zerop (call-process "sips" nil nil nil
+                               "-s" "format" "jpeg"
+                               "-s" "formatOptions" "85"
+                               "-Z" (number-to-string pixels)
+                               (expand-file-name heic)
+                               "--out" out))
+    (error "sips failed on %s" heic)))
+
+(defun my/jotbooks--render-heic (heic img-dir)
+  "Render HEIC as a single page and thumbnail into IMG-DIR unless up
+to date.  Returns (PAGES . THUMBS), mirroring
+`my/jotbooks--render-pdf''s single-page case, so downstream code
+doesn't care whether a jotbook came from a PDF or a photo."
+  (let* ((stem (file-name-base heic))
+         (stamp (file-name-concat img-dir (concat stem ".stamp"))))
+    (when (file-newer-than-file-p heic stamp)
+      (make-directory img-dir t)
+      (dolist (old (directory-files
+                    img-dir nil
+                    (concat "\\`" (regexp-quote stem)
+                            "\\(-thumb\\)?-[0-9]+\\.jpg\\'")))
+        (delete-file (file-name-concat img-dir old)))
+      (my/jotbooks--sips-heic heic (file-name-concat img-dir (concat stem "-1.jpg"))
+                              my/jotbooks-page-pixels)
+      (my/jotbooks--sips-heic heic (file-name-concat img-dir (concat stem "-thumb-1.jpg"))
+                              my/jotbooks-thumb-pixels)
+      (write-region "" nil stamp nil 'silent))
+    (cons (my/jotbooks--images
+           img-dir (concat "\\`" (regexp-quote stem) "-[0-9]+\\.jpg\\'"))
+          (my/jotbooks--images
+           img-dir (concat "\\`" (regexp-quote stem) "-thumb-[0-9]+\\.jpg\\'")))))
+
+(defun my/jotbooks--render-source (source img-dir)
+  "Render SOURCE (a PDF or HEIC file) into IMG-DIR.
+Dispatches on SOURCE's extension; returns (PAGES . THUMBS) as
+`my/jotbooks--render-pdf' and `my/jotbooks--render-heic' do."
+  (if (let ((case-fold-search t)) (string-match-p "\\.pdf\\'" source))
+      (my/jotbooks--render-pdf source img-dir)
+    (my/jotbooks--render-heic source img-dir)))
+
 (defun my/jotbooks--creation-time (notebook meta)
   "NOTEBOOK's creation instant as (TIME . HAS-TIME-OF-DAY).
 An explicit #+DATE wins, then org-node's :TIME_CREATED:, then the
-PDF's own modification time."
+source file's own modification time."
   (let ((string (or (cdr (assoc "date" meta))
                     (cdr (assoc "time_created" meta)))))
     (or (and string
@@ -325,7 +371,7 @@ PDF's own modification time."
                        (and (string-match-p "[0-9]?[0-9]:[0-9][0-9]" string) t))
                (error nil)))
         (cons (file-attribute-modification-time
-               (file-attributes (car (last (plist-get notebook :pdfs)))))
+               (file-attributes (car (last (plist-get notebook :sources)))))
               t))))
 
 (defun my/jotbooks--collect (notebook)
@@ -338,8 +384,8 @@ notebook's neighbors in the archive's reading order are known."
                    (expand-file-name my/jotbooks-staging-directory) name))
          (img-dir (file-name-concat out-dir "img"))
          pages thumbs)
-    (dolist (pdf (plist-get notebook :pdfs))
-      (let ((rendered (my/jotbooks--render-pdf pdf img-dir)))
+    (dolist (source (plist-get notebook :sources))
+      (let ((rendered (my/jotbooks--render-source source img-dir)))
         (setq pages (append pages (car rendered))
               thumbs (append thumbs (cdr rendered)))))
     (let ((stamp (my/jotbooks--creation-time notebook meta)))
