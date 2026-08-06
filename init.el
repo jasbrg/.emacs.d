@@ -197,19 +197,6 @@
   :custom
   (fill-column 80))
 
-;;;; Window Management
-
-(use-package shackle
-  :vc t
-  :commands shackle-mode
-  :demand t
-  :custom
-  ;; hides the bare org-capture buffer, for suppressing window
-  ;; movement for a log
-  (shackle-rules '(("*Capture*" :ignore t)))
-  :config
-  (shackle-mode))
-
 ;;;; Point visibility
 
 (use-package pulsar
@@ -551,16 +538,12 @@
       plain (function org-node-capture-target) nil
       :immediate-finish t)
      ("c" "Capture log"
-      entry (file+olp+datetree "~/Documents/Org/journal.org") "* %U\n%^{Log}"
+      entry (file+olp+datetree "~/Documents/Org/journal.org") "* %U\n%?"
       :tree-type week
-      :kill-buffer t
-      :jump-to-captured nil
-      :immediate-finish t)
+      :kill-buffer t)
      ("C" "Capture notable log"
-      entry (file+olp+datetree "~/Documents/Org/journal.org") "* %T %^{Log}%?"
-      :tree-type week
-      :jump-to-captured t
-      :immediate-finish t)
+      entry (file+olp+datetree "~/Documents/Org/journal.org") "* %T %?"
+      :tree-type week)
      ("z" "Capture link"
       item (file+olp+datetree "~/Documents/Org/journal.org") "%U %a%?"
       :tree-type week
