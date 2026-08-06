@@ -23,8 +23,11 @@
 ;; the way: the sections let a reader find and select a thing, but
 ;; clicking through its pages sweeps them into the linear flow of time.
 ;; The last page of a jotbook links onward to its successor's first
-;; page — or up to the master index at the end — and the first page
-;; links back into its predecessor.
+;; page, and the first page links back into its predecessor; at the two
+;; ends of the archive both link out to the master index, which links
+;; back into both — so the chain closes into a loop the arrow keys can
+;; ride in either direction, indefinitely.  The node stream is a loop
+;; the same way, around the nodes index.
 ;;
 ;; Optional metadata comes from <stem>.meta.org beside a PDF: #+TITLE,
 ;; #+FILETAGS, #+CATEGORY, #+DESCRIPTION, #+DATE keywords, plus free
@@ -234,19 +237,20 @@ Only links between published IDs (per `my/jotbooks--registry') count."
 The stream — every entry with an ID, pure nodes and jotbook metadata
 pages alike, oldest first — is annotated onto entries by
 `my/jotbooks-prepare' as (URL . TITLE) neighbor conses.  Returns
-keyword lines plus a pagenav block; the newest entry exits up to the
-nodes index."
+keyword lines plus a pagenav block; either end of the stream — the
+oldest entry going back, the newest going on — exits to the nodes
+index, which links back into both, so the stream is a loop."
   (let ((prev (plist-get entry :stream-prev))
         (next (plist-get entry :stream-next)))
     (concat
-     (and prev (format "#+HTML_HEAD_EXTRA: <link rel=\"prev\" href=\"%s\">\n"
-                       (car prev)))
+     (format "#+HTML_HEAD_EXTRA: <link rel=\"prev\" href=\"%s\">\n"
+             (if prev (car prev) "/nodes/index.html"))
      (format "#+HTML_HEAD_EXTRA: <link rel=\"next\" href=\"%s\">\n"
              (if next (car next) "/nodes/index.html"))
      "\n#+begin_pagenav\n"
      (if prev
          (my/jotbooks--html-link (car prev) (concat "← " (cdr prev)))
-       "·")
+       (my/jotbooks--html-link "/nodes/index.html" "← nodes"))
      " | "
      (my/jotbooks--html-link "/nodes/index.html" "nodes")
      " | "
@@ -425,18 +429,18 @@ Returns FILE's base name."
 
 (defun my/jotbooks--page-content (title n i image prev next)
   "Org source for page I of N titled TITLE, showing IMAGE.
-PREV and NEXT are (ORG-FILE . LABEL) navigation targets; PREV is nil
-only on the archive's very first page.  NEXT always exists: within the
-notebook, into the next notebook, or up to the master index."
+PREV and NEXT are (ORG-FILE . LABEL) navigation targets; both always
+exist — within the notebook, into the neighboring notebook, or out to
+the master index at either end of the archive, so the chain is a loop."
   (concat
    (format "#+TITLE: %s — p. %d/%d\n" title i n)
    "#+OPTIONS: toc:nil num:nil\n"
-   (and prev (format "#+HTML_HEAD_EXTRA: <link rel=\"prev\" href=\"%s\">\n"
-                     (my/jotbooks--html-name (car prev))))
+   (format "#+HTML_HEAD_EXTRA: <link rel=\"prev\" href=\"%s\">\n"
+           (my/jotbooks--html-name (car prev)))
    (format "#+HTML_HEAD_EXTRA: <link rel=\"next\" href=\"%s\">\n"
            (my/jotbooks--html-name (car next)))
    "\n#+begin_pagenav\n"
-   (if prev (format "[[file:%s][%s]]" (car prev) (cdr prev)) "·")
+   (format "[[file:%s][%s]]" (car prev) (cdr prev))
    (format " | [[file:index.org][%s]] | " title)
    (format "[[file:%s][%s]]" (car next) (cdr next))
    "\n#+end_pagenav\n"
@@ -511,7 +515,8 @@ a stop in the node stream and carries the stream's navigation."
   "Write INFO's page sequence and index into the staging tree.
 The last page's next link continues into NEXT-INFO's first page — or up
 to the master index when INFO is the archive's newest notebook — and
-the first page's prev link reaches back into PREV-INFO's last page."
+the first page's prev link reaches back into PREV-INFO's last page, or
+up to that same index when INFO is the oldest, closing the loop."
   (let* ((title (plist-get info :title))
          (out-dir (plist-get info :out-dir))
          (pages (plist-get info :pages))
@@ -529,7 +534,10 @@ the first page's prev link reaches back into PREV-INFO's last page."
                                         (plist-get prev-info :name)
                                         (length (plist-get prev-info :pages)))
                                 (plist-get info :name))
-                               (format "← %s" (plist-get prev-info :title))))))
+                               (format "← %s" (plist-get prev-info :title))))
+                        (t (cons (my/jotbooks--rel "index.org"
+                                                   (plist-get info :name))
+                                 "← jotbooks"))))
             (next (cond ((< i n)
                          (cons (format "p%03d.org" (1+ i))
                                (format "p. %d →" (1+ i))))
@@ -552,6 +560,25 @@ the first page's prev link reaches back into PREV-INFO's last page."
     (dolist (file (directory-files out-dir nil "\\.\\(org\\|xml\\)\\'"))
       (unless (member file written)
         (delete-file (file-name-concat out-dir file))))))
+
+(defun my/jotbooks--page-url (info i)
+  "Root-relative URL of page I of jotbook INFO."
+  (format "/jotbooks/%s/p%03d.html" (plist-get info :name) i))
+
+(defun my/jotbooks--cycle-links (prev next)
+  "Keyword lines that wrap an index page into its ontology's chain.
+PREV and NEXT are root-relative URLs (either may be nil).  The
+site-wide keydown handler in `my/jotbooks-html-head' follows whichever
+arrow the reader presses, so an index closes its loop: right enters at
+the beginning of the chain, left returns to the end — the entry whose
+own next link exits back to this index."
+  (concat
+   (if prev
+       (format "#+HTML_HEAD_EXTRA: <link rel=\"prev\" href=\"%s\">\n" prev)
+     "")
+   (if next
+       (format "#+HTML_HEAD_EXTRA: <link rel=\"next\" href=\"%s\">\n" next)
+     "")))
 
 (defun my/jotbooks--entry-newer-p (a b)
   "Order entries A and B newest first, by creation time then title."
@@ -635,23 +662,35 @@ page on the site."
    ""))
 
 (defun my/jotbooks--index-content (infos sections)
-  "Org source for the master index over jotbook INFOS, newest first."
-  (concat
-   "#+TITLE: Jotbooks\n"
-   "#+OPTIONS: toc:nil num:nil\n"
-   "\n"
-   (my/jotbooks--listing infos)
-   "\n[[file:feed.xml][RSS]]"
-   (if sections
-       (concat " · sections: "
-               (mapconcat (lambda (section)
-                            (format "[[file:%s/index.org][%s]]"
-                                    (car section) (car section)))
-                          (sort (copy-sequence sections)
-                                (lambda (a b) (string< (car a) (car b))))
-                          ", "))
-     "")
-   "\n"))
+  "Org source for the master index over jotbook INFOS, newest first.
+The index closes the archive's loop for the arrow keys: right enters
+at the first page of the oldest jotbook, left returns to the last page
+of the newest — the page whose own next link exits back up to here."
+  (let* ((ordered (sort (seq-filter (lambda (info) (plist-get info :pages))
+                                    (copy-sequence infos))
+                        #'my/jotbooks--entry-newer-p))
+         (newest (car ordered))
+         (oldest (car (last ordered))))
+   (concat
+    "#+TITLE: Jotbooks\n"
+    "#+OPTIONS: toc:nil num:nil\n"
+    (my/jotbooks--cycle-links
+     (and newest (my/jotbooks--page-url
+                  newest (length (plist-get newest :pages))))
+     (and oldest (my/jotbooks--page-url oldest 1)))
+    "\n"
+    (my/jotbooks--listing infos)
+    "\n[[file:feed.xml][RSS]]"
+    (if sections
+        (concat " · sections: "
+                (mapconcat (lambda (section)
+                             (format "[[file:%s/index.org][%s]]"
+                                     (car section) (car section)))
+                           (sort (copy-sequence sections)
+                                 (lambda (a b) (string< (car a) (car b))))
+                           ", "))
+      "")
+    "\n")))
 
 ;;; Section pages
 
@@ -1026,17 +1065,24 @@ disambiguated with a prefix of the node's ID."
 (defun my/nodes--index (entries)
   "Org source for the nodes index over ENTRIES, newest first.
 ENTRIES spans both ontologies: every node, plus every jotbook whose
-metadata carries an ID — those are nodes too."
-  (concat
-   "#+TITLE: Nodes\n"
-   "#+OPTIONS: toc:nil num:nil\n"
-   (concat "#+HTML_HEAD_EXTRA: <link rel=\"alternate\""
-           " type=\"application/rss+xml\" title=\"Nodes\" href=\"feed.xml\">\n")
-   "\n"
-   (if (null entries)
-       "No nodes published yet.\n"
-     (my/jotbooks--listing entries))
-   "\n[[file:feed.xml][RSS]]\n"))
+metadata carries an ID — those are nodes too.  The index closes the
+node stream's loop for the arrow keys: right enters at the oldest
+entry, left returns to the newest — the entry that exits back here."
+  (let* ((ordered (sort (copy-sequence entries) #'my/jotbooks--entry-newer-p))
+         (newest (car ordered))
+         (oldest (car (last ordered))))
+    (concat
+     "#+TITLE: Nodes\n"
+     "#+OPTIONS: toc:nil num:nil\n"
+     (concat "#+HTML_HEAD_EXTRA: <link rel=\"alternate\""
+             " type=\"application/rss+xml\" title=\"Nodes\" href=\"feed.xml\">\n")
+     (my/jotbooks--cycle-links (and newest (plist-get newest :url))
+                               (and oldest (plist-get oldest :url)))
+     "\n"
+     (if (null entries)
+         "No nodes published yet.\n"
+       (my/jotbooks--listing entries))
+     "\n[[file:feed.xml][RSS]]\n")))
 
 (defun my/nodes--write (nodes entries)
   "Write the nodes staging tree: a page per node in NODES, plus the
