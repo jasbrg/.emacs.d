@@ -824,16 +824,22 @@ e.g. src_elisp{(my/keybind 'gptel)}"
 
 ;;;; Mail
 
-;; iCloud requires an app-specific password (account.apple.com -> Sign-In and
-;; Security -> App-Specific Passwords).  It lives in the login keychain, added
-;; once with these two commands -- the trailing bare `-w' prompts for it, so it
-;; never lands in shell history:
+;; Two accounts, each synced by mbsync into its own ~/Maildir subtree and
+;; selected in mu4e by a context keyed on that subtree.
 ;;
-;;   security add-internet-password -a j.a.sbrg -s imap.mail.me.com -P 993 -r imap -w
-;;   security add-internet-password -a j.a.sbrg -s smtp.mail.me.com -P 587 -r smtp -w
+;; Both providers need an app-specific password; neither accepts the account
+;; password over IMAP/SMTP.  iCloud: account.apple.com -> Sign-In and Security
+;; -> App-Specific Passwords.  Gmail: myaccount.google.com/apppasswords, which
+;; requires 2-Step Verification to be on.  They live in the login keychain,
+;; added once with a trailing bare `-w' so they never land in shell history:
 ;;
-;; mbsync reads the first via PassCmd (see ~/.mbsyncrc), smtpmail reads the
-;; second via auth-source.
+;;   security add-internet-password -a j.a.sbrg         -s imap.mail.me.com -P 993 -r imap -w
+;;   security add-internet-password -a j.a.sbrg         -s smtp.mail.me.com -P 587 -r smtp -w
+;;   security add-internet-password -a jasbrg@gmail.com -s imap.gmail.com    -P 993 -r imap -w
+;;   security add-internet-password -a jasbrg@gmail.com -s smtp.gmail.com    -P 587 -r smtp -w
+;;
+;; mbsync reads the IMAP entries via PassCmd (see ~/.mbsyncrc), smtpmail reads
+;; the SMTP ones via auth-source.
 
 (use-package auth-source
   :ensure nil
@@ -845,10 +851,11 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   :custom
   (send-mail-function #'smtpmail-send-it)
   (message-send-mail-function #'smtpmail-send-it)
+  ;; Server, port and login are set per-account by the mu4e contexts below;
+  ;; these are only the fallback for composing outside mu4e.
   (smtpmail-smtp-server "smtp.mail.me.com")
   (smtpmail-smtp-service 587)
   (smtpmail-stream-type 'starttls)
-  ;; The SMTP login is always the iCloud account, never the alias we send as.
   (smtpmail-smtp-user "j.a.sbrg"))
 
 (use-package mu4e
@@ -861,8 +868,8 @@ e.g. src_elisp{(my/keybind 'gptel)}"
          ("C-c U" . #'mu4e-compose-new))
   :custom
   (user-full-name "Jacob Sonnenberg")
-  ;; hey@jasbrg.com is an iCloud custom-domain alias on the j.a.sbrg mailbox;
-  ;; both count as "me" for threading and reply-address selection.
+  ;; hey@jasbrg.com is an iCloud custom-domain alias on the j.a.sbrg mailbox.
+  ;; Contexts override this per account; it is the default before one is picked.
   (user-mail-address "hey@jasbrg.com")
   ;; The maildir root is not set here: mu4e takes it from the mu server, which
   ;; got it from `mu init --maildir=$HOME/Maildir'.
@@ -870,24 +877,63 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   (mu4e-update-interval (* 5 60))
   ;; mbsync rewrites filenames on flag changes, so mu4e must do the same.
   (mu4e-change-filenames-when-moving t)
-  ;; iCloud's folder names are Apple's, not the IMAP conventions.
-  (mu4e-drafts-folder "/Drafts")
-  (mu4e-sent-folder "/Sent Messages")
-  (mu4e-trash-folder "/Deleted Messages")
-  (mu4e-refile-folder "/Archive")
-  ;; iCloud does not file SMTP submissions itself, so mu4e keeps the copy.
-  (mu4e-sent-messages-behavior 'sent)
   (mu4e-attachment-dir "~/Downloads")
   (mu4e-search-include-related t)
   (mu4e-headers-fields '((:human-date . 12)
                          (:flags . 6)
+                         (:maildir . 18)
                          (:from . 22)
                          (:subject . nil)))
   (mu4e-use-fancy-chars t)
   (mu4e-confirm-quit nil)
+  ;; Guess from the message being acted on; ask only when there is no clue.
+  (mu4e-context-policy 'pick-first)
+  (mu4e-compose-context-policy 'ask-if-none)
+  (mu4e-maildir-shortcuts '((:maildir "/icloud/INBOX" :key ?i)
+                            (:maildir "/gmail/INBOX" :key ?g)))
   (message-kill-buffer-on-exit t)
   (message-citation-line-function #'message-insert-formatted-citation-line)
-  (message-citation-line-format "On %a, %d %b %Y at %R, %f wrote:"))
+  (message-citation-line-format "On %a, %d %b %Y at %R, %f wrote:")
+  :config
+  ;; A context is selected by which account subtree the message lives in.
+  (defun my/mu4e-maildir-matcher (prefix)
+    (lambda (msg)
+      (when msg
+        (string-prefix-p prefix (mu4e-message-field msg :maildir)))))
+
+  (setq mu4e-contexts
+        (list
+         (make-mu4e-context
+          :name "icloud"
+          :match-func (my/mu4e-maildir-matcher "/icloud")
+          ;; iCloud's folder names are Apple's, not the IMAP conventions, and
+          ;; it does not file SMTP submissions itself -- so mu4e keeps the copy.
+          :vars '((user-mail-address . "hey@jasbrg.com")
+                  (smtpmail-smtp-server . "smtp.mail.me.com")
+                  (smtpmail-smtp-service . 587)
+                  (smtpmail-stream-type . starttls)
+                  (smtpmail-smtp-user . "j.a.sbrg")
+                  (mu4e-drafts-folder . "/icloud/Drafts")
+                  (mu4e-sent-folder . "/icloud/Sent Messages")
+                  (mu4e-trash-folder . "/icloud/Deleted Messages")
+                  (mu4e-refile-folder . "/icloud/Archive")
+                  (mu4e-sent-messages-behavior . sent)))
+         (make-mu4e-context
+          :name "gmail"
+          :match-func (my/mu4e-maildir-matcher "/gmail")
+          ;; Gmail files a copy of every submission into Sent Mail on its own,
+          ;; so keeping ours too would show every sent message twice.  Refiling
+          ;; means moving to All Mail, which is what Gmail's archive really is.
+          :vars '((user-mail-address . "jasbrg@gmail.com")
+                  (smtpmail-smtp-server . "smtp.gmail.com")
+                  (smtpmail-smtp-service . 587)
+                  (smtpmail-stream-type . starttls)
+                  (smtpmail-smtp-user . "jasbrg@gmail.com")
+                  (mu4e-drafts-folder . "/gmail/[Gmail]/Drafts")
+                  (mu4e-sent-folder . "/gmail/[Gmail]/Sent Mail")
+                  (mu4e-trash-folder . "/gmail/[Gmail]/Trash")
+                  (mu4e-refile-folder . "/gmail/[Gmail]/All Mail")
+                  (mu4e-sent-messages-behavior . delete))))))
 
 ;;;; Task support
 
