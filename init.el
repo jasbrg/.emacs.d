@@ -782,7 +782,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
          ("C-c g DEL"   . #'gptel-context-remove-all)
          ("C-c g p"     . #'gptel-org-set-properties))
   :custom
-  (gptel-model 'claude-opus-4.6)
+  (gptel-model 'claude-sonnet-5)
   (gptel-default-mode 'org-mode)
   (gptel-system-prompt
    (concat
