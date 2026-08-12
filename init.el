@@ -822,6 +822,73 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   (interactive)
   (async-shell-command "python3 -m http.server" "*HTTP*"))
 
+;;;; Mail
+
+;; iCloud requires an app-specific password (account.apple.com -> Sign-In and
+;; Security -> App-Specific Passwords).  It lives in the login keychain, added
+;; once with these two commands -- the trailing bare `-w' prompts for it, so it
+;; never lands in shell history:
+;;
+;;   security add-internet-password -a j.a.sbrg -s imap.mail.me.com -P 993 -r imap -w
+;;   security add-internet-password -a j.a.sbrg -s smtp.mail.me.com -P 587 -r smtp -w
+;;
+;; mbsync reads the first via PassCmd (see ~/.mbsyncrc), smtpmail reads the
+;; second via auth-source.
+
+(use-package auth-source
+  :ensure nil
+  :custom
+  (auth-sources '(macos-keychain-internet "~/.authinfo.gpg")))
+
+(use-package smtpmail
+  :ensure nil
+  :custom
+  (send-mail-function #'smtpmail-send-it)
+  (message-send-mail-function #'smtpmail-send-it)
+  (smtpmail-smtp-server "smtp.mail.me.com")
+  (smtpmail-smtp-service 587)
+  (smtpmail-stream-type 'starttls)
+  ;; The SMTP login is always the iCloud account, never the alias we send as.
+  (smtpmail-smtp-user "j.a.sbrg"))
+
+(use-package mu4e
+  ;; mu4e ships with mu itself rather than through an ELPA archive.
+  :ensure nil
+  :ensure-system-package ((mu . mu) (mbsync . isync))
+  :load-path "/opt/homebrew/share/emacs/site-lisp/mu/mu4e"
+  :commands (mu4e mu4e-compose-new)
+  :bind (("C-c u" . #'mu4e)
+         ("C-c U" . #'mu4e-compose-new))
+  :custom
+  (user-full-name "Jacob Sonnenberg")
+  ;; hey@jasbrg.com is an iCloud custom-domain alias on the j.a.sbrg mailbox;
+  ;; both count as "me" for threading and reply-address selection.
+  (user-mail-address "hey@jasbrg.com")
+  ;; The maildir root is not set here: mu4e takes it from the mu server, which
+  ;; got it from `mu init --maildir=$HOME/Maildir'.
+  (mu4e-get-mail-command "mbsync -a")
+  (mu4e-update-interval (* 5 60))
+  ;; mbsync rewrites filenames on flag changes, so mu4e must do the same.
+  (mu4e-change-filenames-when-moving t)
+  ;; iCloud's folder names are Apple's, not the IMAP conventions.
+  (mu4e-drafts-folder "/Drafts")
+  (mu4e-sent-folder "/Sent Messages")
+  (mu4e-trash-folder "/Deleted Messages")
+  (mu4e-refile-folder "/Archive")
+  ;; iCloud does not file SMTP submissions itself, so mu4e keeps the copy.
+  (mu4e-sent-messages-behavior 'sent)
+  (mu4e-attachment-dir "~/Downloads")
+  (mu4e-search-include-related t)
+  (mu4e-headers-fields '((:human-date . 12)
+                         (:flags . 6)
+                         (:from . 22)
+                         (:subject . nil)))
+  (mu4e-use-fancy-chars t)
+  (mu4e-confirm-quit nil)
+  (message-kill-buffer-on-exit t)
+  (message-citation-line-function #'message-insert-formatted-citation-line)
+  (message-citation-line-format "On %a, %d %b %Y at %R, %f wrote:"))
+
 ;;;; Task support
 
 (use-package consult-todo
