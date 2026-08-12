@@ -845,9 +845,10 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   (smtpmail-smtp-user "j.a.sbrg"))
 
 (use-package mu4e
-  ;; mu4e ships with mu itself rather than through an ELPA archive.
   :ensure nil
-  :ensure-system-package ((mu . mu) (mbsync . isync))
+  :init
+  (unless (executable-find "mu") (system-packages-install "mu"))
+  (unless (executable-find "mbsync") (system-packages-install "isync"))
   :load-path "/opt/homebrew/share/emacs/site-lisp/mu/mu4e"
   :commands (mu4e mu4e-compose-new)
   :bind (("C-c u" . #'mu4e)
