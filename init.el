@@ -826,20 +826,6 @@ e.g. src_elisp{(my/keybind 'gptel)}"
 
 ;; Two accounts, each synced by mbsync into its own ~/Maildir subtree and
 ;; selected in mu4e by a context keyed on that subtree.
-;;
-;; Both providers need an app-specific password; neither accepts the account
-;; password over IMAP/SMTP.  iCloud: account.apple.com -> Sign-In and Security
-;; -> App-Specific Passwords.  Gmail: myaccount.google.com/apppasswords, which
-;; requires 2-Step Verification to be on.  They live in the login keychain,
-;; added once with a trailing bare `-w' so they never land in shell history:
-;;
-;;   security add-internet-password -a j.a.sbrg         -s imap.mail.me.com -P 993 -r imap -w
-;;   security add-internet-password -a j.a.sbrg         -s smtp.mail.me.com -P 587 -r smtp -w
-;;   security add-internet-password -a jasbrg@gmail.com -s imap.gmail.com    -P 993 -r imap -w
-;;   security add-internet-password -a jasbrg@gmail.com -s smtp.gmail.com    -P 587 -r smtp -w
-;;
-;; mbsync reads the IMAP entries via PassCmd (see ~/.mbsyncrc), smtpmail reads
-;; the SMTP ones via auth-source.
 
 (use-package auth-source
   :ensure nil
