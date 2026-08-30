@@ -360,7 +360,9 @@
   ;; macOS + cider interaction bug when using full screen mode: the
   ;; tool tip will not overlay the full screen Emacs, but flip to a new
   ;; desktop screen just for the tool tip.  Annoying.
-  (customize-set-variable 'cider-use-tooltips nil))
+  (customize-set-variable 'cider-use-tooltips nil)
+  :custom
+  (clojure-toplevel-inside-comment-form t))
 
 (use-package clj-refactor
   :ensure t)
