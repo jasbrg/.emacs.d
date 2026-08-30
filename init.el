@@ -356,6 +356,7 @@
 
 (use-package cider
   :ensure t
+  :hook (cider-inspector-mode . (lambda () (setq truncate-lines t)))
   :config
   ;; macOS + cider interaction bug when using full screen mode: the
   ;; tool tip will not overlay the full screen Emacs, but flip to a new
