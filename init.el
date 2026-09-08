@@ -819,6 +819,11 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   :custom
   (vterm-max-scrollback 10000))
 
+;;;; SSH Config
+
+(use-package ssh-config-mode
+  :ensure t)
+
 ;;;; HTTP Server
 
 (defun my/http-server ()
