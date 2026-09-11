@@ -39,6 +39,7 @@
   (enable-recursive-minibuffers t)
   (use-short-answers t)
   ;; UI Elements
+  (cursor-type 'box)
   (tool-bar-mode nil)
   (scroll-bar-mode nil)
   (fringe-mode '(8 . 8))
