@@ -367,8 +367,62 @@
 
 ;;; Ledger
 
+(defconst my/ledger-dir "~/Documents/Finance/")
+(defconst my/ledger-file (file-name-concat my/ledger-dir "main.ledger"))
+
 (use-package ledger-mode
-  :ensure t)
+  :ensure t
+  :mode "\\.ledger\\'"
+  :bind (:map ledger-mode-map
+              ("C-c C-r" . #'ledger-reconcile)
+              ("C-c C-o C-r" . #'ledger-report))
+  :hook ((ledger-mode . ledger-flymake-enable)
+         (ledger-mode . flymake-mode))
+  :init
+  ;; So `ledger' with no -f works in eshell and in org babel blocks.
+  (setenv "LEDGER_FILE" (expand-file-name my/ledger-file))
+  :custom
+  (ledger-post-amount-alignment-column 56)
+  (ledger-post-auto-align t)
+  (ledger-clear-whole-transactions t)
+  (ledger-highlight-xact-under-point nil)
+  (ledger-reconcile-default-commodity "$")
+  (ledger-reconcile-sort-key "(date)")
+  (ledger-reconcile-toggle-to-pending nil) ;; toggle straight to cleared
+  (ledger-narrow-on-reconcile nil)
+  (ledger-default-date-format "%Y/%m/%d")
+  ;; Catch typo'd account names: every account must be declared.
+  (ledger-flymake-be-pedantic t)
+  (ledger-report-use-strict t)
+  (ledger-report-auto-refresh t)
+  (ledger-report-resize-window nil)
+  ;; `reg' is file-order by default, so every register report sorts by date.
+  (ledger-reports
+   '(("Position now"
+      "%(binary) -f %(ledger-file) bal -e today ^Assets ^Liabilities")
+     ("This month"
+      "%(binary) -f %(ledger-file) bal -p \"this month\" ^Expenses ^Income")
+     ;; Housing:Mortgage and Escrow come from the generated amortization
+     ;; schedule, not from a periodic transaction, so they have no budget
+     ;; line and would otherwise read as a huge overspend.
+     ("Budget variance"
+      "%(binary) -f %(ledger-file) bal --budget --add-budget -p \"this month\" Expenses and not Expenses:Housing:Mortgage and not Expenses:Housing:Escrow")
+     ("Recurring, one month"
+      "%(binary) -f %(ledger-file) --forecast 'd<[today]+40' -b \"next month\" -p \"next month\" bal ^Expenses")
+     ("Subscriptions, next 12mo"
+      "%(binary) -f %(ledger-file) --forecast 'd<[today]+365' -b today -M --collapse reg ^Expenses:Subscriptions")
+     ("Cash flow, next 12mo"
+      "%(binary) -f %(ledger-file) --forecast 'd<[today]+365' -b today -M --collapse reg ^Expenses ^Income")
+     ("Checking, next 12mo"
+      "%(binary) -f %(ledger-file) --forecast 'd<[today]+365' --sort date -M reg Assets:Checking")
+     ("Net worth, yearly"
+      "%(binary) -f %(ledger-file) --forecast 'd<[today]+1825' -Y --collapse reg ^Assets ^Liabilities")
+     ("Mortgage payoff"
+      "%(binary) -f %(ledger-file) --sort date -Y reg Liabilities:Mortgage")
+     ("Uncleared"
+      "%(binary) -f %(ledger-file) --sort date -e today reg --uncleared")
+     ("Account"  "%(binary) -f %(ledger-file) --sort date reg %(account)")
+     ("Payee"    "%(binary) -f %(ledger-file) --sort date reg @%(payee)"))))
 
 (use-package csv-mode
   :ensure t)
