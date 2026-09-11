@@ -840,6 +840,9 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   (interactive)
   (async-shell-command "python3 -m http.server" "*HTTP*"))
 
+(use-package caddyfile-mode
+  :ensure t)
+
 ;;;; Mail
 
 ;; Two accounts, each synced by mbsync into its own ~/Maildir subtree and
