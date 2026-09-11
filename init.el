@@ -823,6 +823,12 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   :custom
   (vterm-max-scrollback 10000))
 
+(use-package eat
+  :ensure t
+  :config
+  (eat-eshell-mode)
+  (setq eshell-visual-commands '()))
+
 ;;;; SSH Config
 
 (use-package ssh-config-mode
