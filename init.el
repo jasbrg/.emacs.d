@@ -45,6 +45,7 @@
   (indicate-buffer-boundaries 'left)
   (indicate-empty-lines t)
   (scroll-conservatively 100)
+  (sentence-end-double-space nil)
   :config
   (load custom-file 'noerror)
   ;; Global Modes
