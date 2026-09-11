@@ -84,11 +84,9 @@
 (use-package system-packages
   :ensure t)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Display & Themes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Display & Themes
 
-;;;; Fonts
+;;; Fonts
 
 (defun monaspace (variant)
   (pcase variant
@@ -149,16 +147,16 @@
   :hook (org-mode . variable-pitch-mode)
   :diminish buffer-face-mode)
 
-;;;; Color Theme
+;;; Color Theme
 
 (consult-theme 'modus-vivendi-tinted)
 
-;;;; ANSI Color Support
+;;; ANSI Color Support
 
 (use-package ansi-color
   :hook (compilation-filter . ansi-color-compilation-filter))
 
-;;;; Highlighting Todo
+;;; Highlighting Todo
 
 (use-package hl-todo
   :ensure t
@@ -190,7 +188,7 @@
   :config
   (global-hl-todo-mode))
 
-;;;; Window Margins
+;;; Window Margins
 
 (use-package olivetti
   :ensure t
@@ -201,7 +199,7 @@
   :custom
   (fill-column 80))
 
-;;;; Point visibility
+;;; Point visibility
 
 (use-package pulsar
   :ensure t
@@ -220,36 +218,34 @@
   (add-to-list 'pulsar-pulse-functions 'forward-paragraph)
   (add-to-list 'pulsar-pulse-functions 'backward-paragraph))
 
-;;;; Mode Line
+;;; Mode Line
 
 (use-package project-mode-line-tag
   :ensure t
   :config
   (project-mode-line-tag-mode 1))
 
-;;;; Tablist (dependency for other packages)
+;;; Tablist (dependency for other packages)
 
 (use-package tablist
   :ensure t)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Navigation, Interaction & Editing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Navigation, Interaction & Editing
 
-;;;; S-Expression Movements
+;;; S-Expression Movements
 
 (use-package paredit
   :ensure t
   :diminish
   :hook ((emacs-lisp-mode clojure-mode cider-repl-mode) . #'enable-paredit-mode))
 
-;;;; Buffer Hygiene
+;;; Buffer Hygiene
 
 (use-package whitespace-cleanup-mode
   :ensure t
   :diminish whitespace-cleanup-mode)
 
-;;;; Minibuffer & Completion Improvements
+;;; Minibuffer & Completion Improvements
 
 (use-package vertico
   :ensure t
@@ -304,9 +300,7 @@
          ("M-y"     . #'consult-yank-pop)
          ("C-x b"   . #'consult-buffer)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Discoverability ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Discoverability
 
 (use-package which-key
   :diminish
@@ -334,16 +328,14 @@
   (marginalia-mode)
   :bind (:map minibuffer-mode-map ("C-." . #'marginalia-cycle)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Programming Language Major Modes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Programming Language Major Modes
 
-;;;; Web Languages
+;;; Web Languages
 
 (use-package web-beautify
   :ensure t)
 
-;;;; Emacs Lisp
+;;; Emacs Lisp
 
 (use-package elisp-mode
   :bind (:map emacs-lisp-mode-map
@@ -353,7 +345,7 @@
 (use-package inspector
   :ensure t)
 
-;;;; Clojure
+;;; Clojure
 
 (use-package clojure-mode
   :ensure t)
@@ -372,7 +364,7 @@
 (use-package clj-refactor
   :ensure t)
 
-;;;; Ledger
+;;; Ledger
 
 (use-package ledger-mode
   :ensure t)
@@ -383,11 +375,7 @@
 (use-package systemd
   :ensure t)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Org Mode ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;; Core Org
+;;; Org Mode
 
 (defun my/org-indent-subtree ()
   (interactive)
@@ -447,7 +435,7 @@
   :config
   (global-orglink-mode 1))
 
-;;;; Org Mem/Node
+;;; Org Mem/Node
 
 (use-package org-mem
   ;; [[id:34CA82F7-D038-4ED2-A81F-CB45CCA1D7D2][Org-Mem]]
@@ -528,7 +516,7 @@
 (use-package org-ql
   :ensure t)
 
-;;;; Org Capture Templates
+;;; Org Capture Templates
 
 (use-package org-capture
   :after org
@@ -565,7 +553,7 @@
      ("t" "Capture task" entry (file "~/Documents/Org/tasks.org")
       "* TODO %?\n:PROPERTIES:\n:ID: %(org-id-new)\n:TIME_CREATED: %U\n:END:\n"))))
 
-;;;; Blog configuration
+;;; Blog configuration
 
 (defun my/keybind (f)
   "Helper function, intended for Org-Mode exports
@@ -575,7 +563,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
 (defvar my/org-blog-directory "~/Documents/Org/blog") ;; write
 (defvar my/html-blog-directory "~/Public/blog")       ;; read
 
-;;;; HTML Templating in Emacs-Lisp
+;;; HTML Templating in Emacs-Lisp
 
 (use-package esxml :ensure t)
 
@@ -606,7 +594,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
 (defun my/org-blog-breadcrumb-bar (info)
   (my/org-blog-section-bar (my/org-blog-relative-path info)))
 
-;;;; Blog Publishing Configuration
+;;; Blog Publishing Configuration
 
 (defun my/org-publish-filter-publishing (orig-fn format &rest args)
   (if (and (stringp format) (string-prefix-p "Publishing" format))
@@ -727,11 +715,9 @@ e.g. src_elisp{(my/keybind 'gptel)}"
      ("terms" :components ("terms-pages" "terms-static"))
      ("site" :components ("blog" "images" "css" "jotbooks" "nodes" "terms")))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Applications ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Applications
 
-;;;; Directory Editing
+;;; Directory Editing
 
 (use-package dired
   :ensure-system-package (gls . coreutils)
@@ -739,7 +725,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   (dired-listing-switches "--group-directories-first -GlhF")
   :hook (dired-mode . dired-hide-details-mode))
 
-;;;; Calendar
+;;; Calendar
 
 (use-package calendar
   :custom
@@ -747,7 +733,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   (calendar-longitude -84.25)
   (diary-file "~/Documents/Org/Diary"))
 
-;;;; Dashboard
+;;; Dashboard
 
 (use-package dashboard
   :after org-agenda
@@ -761,7 +747,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   :config
   (dashboard-setup-startup-hook))
 
-;;;; Spell checking
+;;; Spell checking
 
 (use-package jinx
   :ensure t
@@ -773,7 +759,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   :bind (("s-;" . #'jinx-correct)
          ("s-:" . #'jinx-correct-all)))
 
-;;;; Document Reader
+;;; Document Reader
 
 (use-package pdf-tools
   :ensure t
@@ -802,7 +788,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
     (follow-mode 1)
     (nov-render-document)))
 
-;;;; Chatbot assistant
+;;; Chatbot assistant
 
 (use-package gptel
   :vc t
@@ -839,7 +825,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   :vc t
   :bind (("C-c g a" . #'gptel-agent)))
 
-;;;; Terminal Emulator
+;;; Terminal Emulator
 
 (use-package vterm
   :ensure t
@@ -854,12 +840,12 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   (eat-eshell-mode)
   (setq eshell-visual-commands '()))
 
-;;;; SSH Config
+;;; SSH Config
 
 (use-package ssh-config-mode
   :ensure t)
 
-;;;; HTTP Server
+;;; HTTP Server
 
 (defun my/http-server ()
   (interactive)
@@ -868,7 +854,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
 (use-package caddyfile-mode
   :ensure t)
 
-;;;; Mail
+;;; Mail
 
 ;; Two accounts, each synced by mbsync into its own ~/Maildir subtree and
 ;; selected in mu4e by a context keyed on that subtree.
@@ -968,7 +954,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
                   (mu4e-refile-folder . "/gmail/[Gmail]/All Mail")
                   (mu4e-sent-messages-behavior . delete))))))
 
-;;;; Task support
+;;; Task support
 
 (use-package consult-todo
   :ensure t
@@ -977,7 +963,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
 (use-package magit-todos
   :ensure t)
 
-;;;; Source Control
+;;; Source Control
 
 (use-package magit
   :ensure t
@@ -997,8 +983,6 @@ e.g. src_elisp{(my/keybind 'gptel)}"
 (use-package forge
   :ensure t
   :after magit)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide 'init)
 
