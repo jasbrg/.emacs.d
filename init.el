@@ -777,6 +777,28 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   :config
   (pdf-tools-install))
 
+(use-package follow
+  :bind (:map follow-mode-map
+              ([remap scroll-up-command] . follow-scroll-up)
+              ([remap scroll-down-command] . follow-scroll-down)
+              ([remap scroll-other-window] . follow-scroll-up-window)
+              ([remap scroll-other-window-down] . follow-scroll-down-window)))
+
+(use-package nov
+  :ensure t
+  :mode ("\\.epub\\'" . nov-mode)
+  :bind (:map nov-mode-map
+              ("C-c c" . my/nov-split-columns))
+  :config
+  (defun my/nov-split-columns (n)
+    (interactive "nColumns: ")
+    (delete-other-windows)
+    (dotimes (_ (1- n))
+      (split-window-right)
+      (balance-windows))
+    (follow-mode 1)
+    (nov-render-document)))
+
 ;;;; Chatbot assistant
 
 (use-package gptel
