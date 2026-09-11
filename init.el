@@ -57,6 +57,7 @@
   (save-place-mode)
   (column-number-mode)
   (pixel-scroll-precision-mode)
+  (add-to-list 'auto-mode-alist '("\\.webmanifest\\'" . json-ts-mode))
   ;; et cetera~
   (add-to-list 'load-path (file-name-concat user-emacs-directory "my/")))
 
