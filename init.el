@@ -123,7 +123,9 @@
 			       org-document-title
 			       org-link
 			       org-verbatim))
-		     (radon . (font-lock-comment-face variable-pitch))
+		     (radon . (font-lock-comment-face
+			       variable-pitch
+			       shr-text))
 		     (krypton . (font-lock-function-name-face
 				 org-block-begin-line
 				 org-block-end-line
