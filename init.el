@@ -961,9 +961,6 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   ;; NOTE: this is going to chug on large repos
   (add-hook 'after-save-hook #'magit-after-save-refresh-status t))
 
-(use-package buttercup
-  :ensure t)
-
 (use-package git-auto-commit-mode
   :vc t
   :config
