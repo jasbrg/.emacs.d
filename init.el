@@ -150,57 +150,28 @@
 
 ;;; Color Theme
 
-(use-package doom-themes
-  :ensure t
-  :custom
-  (doom-themes-padded-modeline nil)
-  :config
-  (doom-themes-org-config)
-  (load-theme 'doom-plain t)
+(defun my/doom-theme-set-faces (theme fringe-bg fg-adjust-fn)
   (let ((diff-green "#5f8f5f")
         (diff-red   "#a8544e")
         (bg         (doom-color 'bg)))
     (custom-theme-set-faces
-     'doom-plain
-     '(fringe ((t (:background "#c5c8c6"))))
-     `(magit-diff-added
-       ((t (:foreground ,(doom-darken diff-green 0.2)
+     theme
+     `(fringe ((t (:background ,fringe-bg))))
+     `(diff-added
+       ((t (:foreground ,(funcall fg-adjust-fn diff-green 0.2)
             :background ,(doom-blend diff-green bg 0.1)))))
-     `(magit-diff-added-highlight
-       ((t (:foreground ,diff-green
-            :background ,(doom-blend diff-green bg 0.2)
-            :weight bold))))
-     `(magit-diff-removed
-       ((t (:foreground ,(doom-darken diff-red 0.2)
+     `(diff-removed
+       ((t (:foreground ,(funcall fg-adjust-fn diff-red 0.2)
             :background ,(doom-blend diff-red bg 0.1)))))
-     `(magit-diff-removed-highlight
-       ((t (:foreground ,diff-red
-            :background ,(doom-blend diff-red bg 0.2)
-            :weight bold))))
-     `(diff-refine-added
-       ((t (:foreground ,diff-green
-            :background ,(doom-blend diff-green bg 0.35)
-            :inverse-video nil))))
-     `(diff-refine-removed
-       ((t (:foreground ,diff-red
-            :background ,(doom-blend diff-red bg 0.35)
-            :inverse-video nil))))))
-  (load-theme 'doom-plain-dark t)
-  (let ((diff-green "#5f8f5f")
-        (diff-red   "#a8544e")
-        (bg         (doom-color 'bg)))
-    (custom-theme-set-faces
-     'doom-plain-dark
-     '(fringe ((t (:background "#383838"))))
      `(magit-diff-added
-       ((t (:foreground ,(doom-lighten diff-green 0.2)
+       ((t (:foreground ,(funcall fg-adjust-fn diff-green 0.2)
             :background ,(doom-blend diff-green bg 0.1)))))
      `(magit-diff-added-highlight
        ((t (:foreground ,diff-green
             :background ,(doom-blend diff-green bg 0.2)
             :weight bold))))
      `(magit-diff-removed
-       ((t (:foreground ,(doom-lighten diff-red 0.2)
+       ((t (:foreground ,(funcall fg-adjust-fn diff-red 0.2)
             :background ,(doom-blend diff-red bg 0.1)))))
      `(magit-diff-removed-highlight
        ((t (:foreground ,diff-red
@@ -214,6 +185,16 @@
        ((t (:foreground ,diff-red
             :background ,(doom-blend diff-red bg 0.35)
             :inverse-video nil)))))))
+
+(use-package doom-themes
+  :ensure t
+  :custom
+  (doom-themes-padded-modeline nil)
+  :config
+  (doom-themes-org-config)
+  (my/doom-theme-set-faces 'doom-plain "#c5c8c6" #'doom-darken)
+  (my/doom-theme-set-faces 'doom-plain-dark "#383838" #'doom-lighten)
+  (consult-theme 'doom-plain))
 
 ;;; ANSI Color Support
 
