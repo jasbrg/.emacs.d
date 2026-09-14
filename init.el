@@ -116,23 +116,23 @@
                               font-lock-builtin-face))
                      (argon . (font-lock-variable-name-face
 			       font-lock-string-face
-			       org-block org-date org-property-value))
+			       ;; org-block org-date org-property-value
+			       ))
 		     (xenon . (font-lock-type-face
 			       font-lock-constant-face
-			       org-document-title
-			       org-link
-			       org-verbatim))
-		     (radon . (font-lock-comment-face
-			       variable-pitch
-			       shr-text))
+			       ;; org-document-title
+			       ;; org-link
+			       ;; org-verbatim
+			       ))
+		     (radon . (font-lock-comment-face))
 		     (krypton . (font-lock-function-name-face
-				 org-block-begin-line
-				 org-block-end-line
-				 org-code
-				 org-document-info-keyword
-				 org-drawer
-				 org-meta-line
-				 org-special-keyword
+				 ;; org-block-begin-line
+				 ;; org-block-end-line
+				 ;; org-code
+				 ;; org-document-info-keyword
+				 ;; org-drawer
+				 ;; org-meta-line
+				 ;; org-special-keyword
 				 fixed-pitch))))
     (dolist (face (cdr mapping))
       (set-face-attribute face nil :family (monaspace (car mapping))))))
@@ -145,7 +145,12 @@
   (diminish 'visual-line-mode))
 
 (use-package face-remap
-  :hook (org-mode . variable-pitch-mode)
+  :hook ((org-mode . variable-pitch-mode)
+         (buffer-face-mode . (lambda ()
+                                (setq-local cursor-type
+                                            (if buffer-face-mode 'bar 'box)))))
+  :custom-face
+  (variable-pitch ((t (:family "Athelas"))))
   :diminish buffer-face-mode)
 
 ;;; Color Theme
@@ -931,6 +936,7 @@ e.g. src_elisp{(my/keybind 'gptel)}"
 (use-package nov
   :ensure t
   :mode ("\\.epub\\'" . nov-mode)
+  :hook (nov-mode . variable-pitch-mode)
   :bind (:map nov-mode-map
               ("C-c c" . my/nov-split-columns)
               ("SPC" . my/nov-scroll-up)
