@@ -793,7 +793,12 @@ e.g. src_elisp{(my/keybind 'gptel)}"
 (use-package dashboard
   :after org-agenda
   :ensure t
-  :bind (("C-c o RET" . #'dashboard-open))
+  :init
+  (defun my/dashboard-open ()
+    (interactive)
+    (dashboard-open)
+    (delete-other-windows))
+  :bind (("C-c o RET" . #'my/dashboard-open))
   :custom
   (dashboard-items '((agenda . 5)
 		     (recents . 5)
