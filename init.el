@@ -150,7 +150,41 @@
 
 ;;; Color Theme
 
-(consult-theme 'modus-vivendi-tinted)
+(use-package doom-themes
+  :ensure t
+  :custom
+  (doom-themes-padded-modeline nil)
+  :config
+  (doom-themes-org-config)
+  (load-theme 'doom-plain t)
+  (let ((diff-green "#5f8f5f")
+        (diff-red   "#a8544e")
+        (bg         (doom-color 'bg)))
+    (custom-theme-set-faces
+     'doom-plain
+     '(fringe ((t (:background "#c5c8c6"))))
+     `(magit-diff-added
+       ((t (:foreground ,(doom-darken diff-green 0.2)
+            :background ,(doom-blend diff-green bg 0.1)))))
+     `(magit-diff-added-highlight
+       ((t (:foreground ,diff-green
+            :background ,(doom-blend diff-green bg 0.2)
+            :weight bold))))
+     `(magit-diff-removed
+       ((t (:foreground ,(doom-darken diff-red 0.2)
+            :background ,(doom-blend diff-red bg 0.1)))))
+     `(magit-diff-removed-highlight
+       ((t (:foreground ,diff-red
+            :background ,(doom-blend diff-red bg 0.2)
+            :weight bold))))
+     `(diff-refine-added
+       ((t (:foreground ,diff-green
+            :background ,(doom-blend diff-green bg 0.35)
+            :inverse-video nil))))
+     `(diff-refine-removed
+       ((t (:foreground ,diff-red
+            :background ,(doom-blend diff-red bg 0.35)
+            :inverse-video nil)))))))
 
 ;;; ANSI Color Support
 
