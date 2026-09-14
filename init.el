@@ -888,8 +888,21 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   :ensure t
   :mode ("\\.epub\\'" . nov-mode)
   :bind (:map nov-mode-map
-              ("C-c c" . my/nov-split-columns))
+              ("C-c c" . my/nov-split-columns)
+              ("SPC" . my/nov-scroll-up)
+              ("S-SPC" . my/nov-scroll-down)
+              ("DEL" . my/nov-scroll-down))
   :config
+  (defun my/nov-scroll-up (arg)
+    (interactive "P")
+    (if follow-mode
+        (follow-scroll-up arg)
+      (nov-scroll-up arg)))
+  (defun my/nov-scroll-down (arg)
+    (interactive "P")
+    (if follow-mode
+        (follow-scroll-down arg)
+      (nov-scroll-down arg)))
   (defun my/nov-split-columns (n)
     (interactive "nColumns: ")
     (delete-other-windows)
