@@ -369,19 +369,70 @@
 
 (defconst my/ledger-dir "~/Documents/Finance/")
 (defconst my/ledger-file (file-name-concat my/ledger-dir "main.ledger"))
+(defconst my/ledger-accounts-file (file-name-concat my/ledger-dir "accounts.ledger"))
+
+(defun my/ledger-undeclared-accounts ()
+  "Return accounts used in postings but missing an `account' declaration.
+Asks ledger itself which accounts the journal uses, so aliases and
+included files are handled the same way ledger handles them."
+  (let* ((default-directory (expand-file-name my/ledger-dir))
+         (decl (with-temp-buffer
+                 (insert-file-contents my/ledger-accounts-file)
+                 (let (acc)
+                   (goto-char (point-min))
+                   (while (re-search-forward "^account[ \t]+\\(.+?\\)[ \t]*$" nil t)
+                     (push (match-string 1) acc))
+                   acc)))
+         (used (with-temp-buffer
+                 (unless (zerop (call-process ledger-binary-path nil t nil
+                                              "-f" (expand-file-name my/ledger-file)
+                                              "accounts"))
+                   (user-error "Ledger could not parse the journal: %s"
+                               (string-trim (buffer-string))))
+                 (split-string (buffer-string) "\n" t))))
+    (seq-remove (lambda (a) (member a decl)) used)))
+
+(defun my/ledger-declare-missing-accounts ()
+  "Append a declaration for every undeclared account to the accounts file.
+Satisfies the flymake errors that `ledger-flymake-be-pedantic' raises,
+without hand-writing each line.  Review the result: an unexpected name
+here usually means a typo that pedantic mode just caught for you."
+  (interactive)
+  (let ((missing (my/ledger-undeclared-accounts)))
+    (if (null missing)
+        (message "Every account is declared")
+      (when (yes-or-no-p (format "Declare %d account(s): %s? "
+                                 (length missing)
+                                 (string-join missing ", ")))
+        (with-current-buffer (find-file-noselect my/ledger-accounts-file)
+          (goto-char (point-max))
+          (unless (bolp) (insert "\n"))
+          (insert (format "\n;;; Added %s\n"
+                          (format-time-string "%Y-%m-%d")))
+          (dolist (a (sort missing #'string<))
+            (insert (format "account %s\n" a)))
+          (save-buffer))
+        (message "Declared %d account(s) in %s"
+                 (length missing)
+                 (file-name-nondirectory my/ledger-accounts-file))))))
 
 (use-package ledger-mode
   :ensure t
   :mode "\\.ledger\\'"
   :bind (:map ledger-mode-map
               ("C-c C-r" . #'ledger-reconcile)
-              ("C-c C-o C-r" . #'ledger-report))
+              ("C-c C-o C-r" . #'ledger-report)
+              ("C-c C-d" . #'my/ledger-declare-missing-accounts))
   :hook ((ledger-mode . ledger-flymake-enable)
          (ledger-mode . flymake-mode))
   :init
   ;; So `ledger' with no -f works in eshell and in org babel blocks.
   (setenv "LEDGER_FILE" (expand-file-name my/ledger-file))
   :custom
+  ;; Completion offers only DECLARED accounts, so you rarely type an
+  ;; undeclared one in the first place.  This is the real fix for the
+  ;; pedantic-mode account errors; `C-c C-d' is the cleanup for the rest.
+  (ledger-accounts-file my/ledger-accounts-file)
   (ledger-post-amount-alignment-column 56)
   (ledger-post-auto-align t)
   (ledger-clear-whole-transactions t)
