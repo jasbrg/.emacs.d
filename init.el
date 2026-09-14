@@ -795,10 +795,10 @@ e.g. src_elisp{(my/keybind 'gptel)}"
   :ensure t
   :bind (("C-c o RET" . #'dashboard-open))
   :custom
-  (dashboard-items '((recents . 5)
+  (dashboard-items '((agenda . 5)
+		     (recents . 5)
                      (bookmarks . 5)
-                     (projects . 5)
-                     (agenda . 5)))
+                     (projects . 5)))
   :config
   (dashboard-setup-startup-hook))
 
